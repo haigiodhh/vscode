@@ -16,7 +16,7 @@ import {IDisposable, dispose} from 'vs/base/common/lifecycle';
 import {Range, Position, Disposable} from 'vs/workbench/api/node/extHostTypes';
 import {IEventService} from 'vs/platform/event/common/event';
 import {IWorkbenchEditorService} from 'vs/workbench/services/editor/common/editorService';
-import {EventType as FileEventType, LocalFileChangeEvent, ITextFileService} from 'vs/workbench/parts/files/common/files';
+import {EventType as FileEventType, TextFileChangeEvent, ITextFileService} from 'vs/workbench/parts/files/common/files';
 import * as TypeConverters from './extHostTypeConverters';
 import {TPromise} from 'vs/base/common/winjs.base';
 import * as vscode from 'vscode';
@@ -322,7 +322,7 @@ export class ExtHostDocumentData extends MirrorModel2 {
 		}
 
 		if (line < 0 || line >= this._lines.length) {
-			throw new Error('Illegal value ' + line + ' for `line`');
+			throw new Error('Illegal value for `line`');
 		}
 
 		let result = this._textLines[line];
@@ -331,14 +331,16 @@ export class ExtHostDocumentData extends MirrorModel2 {
 			const text = this._lines[line];
 			const firstNonWhitespaceCharacterIndex = /^(\s*)/.exec(text)[1].length;
 			const range = new Range(line, 0, line, text.length);
-			const rangeIncludingLineBreak = new Range(line, 0, line + 1, 0);
+			const rangeIncludingLineBreak = line < this._lines.length - 1
+				? new Range(line, 0, line + 1, 0)
+				: range;
 
 			result = Object.freeze({
 				lineNumber: line,
 				range,
 				rangeIncludingLineBreak,
 				text,
-				firstNonWhitespaceCharacterIndex,
+				firstNonWhitespaceCharacterIndex, //TODO@api, rename to 'leadingWhitespaceLength'
 				isEmptyOrWhitespace: firstNonWhitespaceCharacterIndex === text.length
 			});
 
@@ -393,23 +395,24 @@ export class ExtHostDocumentData extends MirrorModel2 {
 
 		if (line < 0) {
 			line = 0;
-			hasChanged = true;
-		}
-
-		if (line >= this._lines.length) {
-			line = this._lines.length - 1;
-			hasChanged = true;
-		}
-
-		if (character < 0) {
 			character = 0;
 			hasChanged = true;
 		}
-
-		let maxCharacter = this._lines[line].length;
-		if (character > maxCharacter) {
-			character = maxCharacter;
+		else if (line >= this._lines.length) {
+			line = this._lines.length - 1;
+			character = this._lines[line].length;
 			hasChanged = true;
+		}
+		else {
+			let maxCharacter = this._lines[line].length;
+			if (character < 0) {
+				character = 0;
+				hasChanged = true;
+			}
+			else if (character > maxCharacter) {
+				character = maxCharacter;
+				hasChanged = true;
+			}
 		}
 
 		if (!hasChanged) {
@@ -473,19 +476,19 @@ export class MainThreadDocuments {
 		modelService.onModelRemoved(this._onModelRemoved, this, this._toDispose);
 		modelService.onModelModeChanged(this._onModelModeChanged, this, this._toDispose);
 
-		this._toDispose.push(eventService.addListener2(FileEventType.FILE_SAVED, (e: LocalFileChangeEvent) => {
+		this._toDispose.push(eventService.addListener2(FileEventType.FILE_SAVED, (e: TextFileChangeEvent) => {
 			if (this._shouldHandleFileEvent(e)) {
-				this._proxy._acceptModelSaved(e.getAfter().resource.toString());
+				this._proxy._acceptModelSaved(e.resource.toString());
 			}
 		}));
-		this._toDispose.push(eventService.addListener2(FileEventType.FILE_REVERTED, (e: LocalFileChangeEvent) => {
+		this._toDispose.push(eventService.addListener2(FileEventType.FILE_REVERTED, (e: TextFileChangeEvent) => {
 			if (this._shouldHandleFileEvent(e)) {
-				this._proxy._acceptModelReverted(e.getAfter().resource.toString());
+				this._proxy._acceptModelReverted(e.resource.toString());
 			}
 		}));
-		this._toDispose.push(eventService.addListener2(FileEventType.FILE_DIRTY, (e: LocalFileChangeEvent) => {
+		this._toDispose.push(eventService.addListener2(FileEventType.FILE_DIRTY, (e: TextFileChangeEvent) => {
 			if (this._shouldHandleFileEvent(e)) {
-				this._proxy._acceptModelDirty(e.getAfter().resource.toString());
+				this._proxy._acceptModelDirty(e.resource.toString());
 			}
 		}));
 
@@ -505,9 +508,8 @@ export class MainThreadDocuments {
 		this._toDispose = dispose(this._toDispose);
 	}
 
-	private _shouldHandleFileEvent(e: LocalFileChangeEvent): boolean {
-		const after = e.getAfter();
-		const model = this._modelService.getModel(after.resource);
+	private _shouldHandleFileEvent(e: TextFileChangeEvent): boolean {
+		const model = this._modelService.getModel(e.resource);
 		return model && !model.isTooLargeForHavingARichMode();
 	}
 
@@ -612,6 +614,9 @@ export class MainThreadDocuments {
 			return input.resolve(true).then(model => {
 				if (input.getResource().toString() !== uri.toString()) {
 					throw new Error(`expected URI ${uri.toString() } BUT GOT ${input.getResource().toString() }`);
+				}
+				if (!this._modelIsSynced[uri.toString()]) {
+					throw new Error(`expected URI ${uri.toString()} to have come to LIFE`);
 				}
 				return this._proxy._acceptModelDirty(uri.toString()); // mark as dirty
 			}).then(() => {

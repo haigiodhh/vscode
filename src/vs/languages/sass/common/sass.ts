@@ -50,9 +50,6 @@ export var language = <Types.ILanguage>{
 	tokenizer: {
 		root: [
 			{ include: '@selector' },
-			['[@](charset|namespace)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@declarationbody'}],
-			['[@](function)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@functiondeclaration'}],
-			['[@](mixin)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@mixindeclaration'}],
 		],
 
 		selector: [
@@ -63,6 +60,9 @@ export var language = <Types.ILanguage>{
 			['[@](include)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@includedeclaration'}], // sass: include statement
 			['[@](keyframes|-webkit-keyframes|-moz-keyframes|-o-keyframes)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@keyframedeclaration'}],
 			['[@](page|content|font-face|-moz-document)', { token: sassTokenTypes.TOKEN_AT_KEYWORD}], // sass: placeholder for includes
+			['[@](charset|namespace)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@declarationbody'}],
+			['[@](function)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@functiondeclaration'}],
+			['[@](mixin)', { token: sassTokenTypes.TOKEN_AT_KEYWORD, next: '@mixindeclaration'}],
 			['url(\\-prefix)?\\(', { token: 'support.function.name', bracket: '@open', next: '@urldeclaration'}],
 			{ include: '@controlstatement' }, // sass control statements
 			{ include: '@selectorname' },
@@ -203,7 +203,7 @@ export var language = <Types.ILanguage>{
 		],
 
 		parameterdeclaration: [
-			['\\$@identifier@ws:', sassTokenTypes.TOKEN_PROPERTY],
+			['\\$@identifier@ws:', 'variable'],
 			['\\.\\.\\.', 'keyword.operator'], // var args in declaration
 			[',', 'punctuation'],
 			{ include: '@term' },
@@ -283,7 +283,6 @@ export class SASSMode extends Monarch.MonarchMode implements Modes.IExtraInfoSup
 	public inplaceReplaceSupport:Modes.IInplaceReplaceSupport;
 	public configSupport:Modes.IConfigurationSupport;
 	public referenceSupport: Modes.IReferenceSupport;
-	public logicalSelectionSupport: Modes.ILogicalSelectionSupport;
 	public extraInfoSupport: Modes.IExtraInfoSupport;
 	public outlineSupport: Modes.IOutlineSupport;
 	public declarationSupport: Modes.IDeclarationSupport;
@@ -313,7 +312,6 @@ export class SASSMode extends Monarch.MonarchMode implements Modes.IExtraInfoSup
 		this.referenceSupport = new ReferenceSupport(this.getId(), {
 			tokens: [sassTokenTypes.TOKEN_PROPERTY + '.sass', sassTokenTypes.TOKEN_VALUE + '.sass', 'variable.decl.sass', 'variable.ref.sass', 'support.function.name.sass', sassTokenTypes.TOKEN_PROPERTY + '.sass', sassTokenTypes.TOKEN_SELECTOR + '.sass'],
 			findReferences: (resource, position, /*unused*/includeDeclaration) => this.findReferences(resource, position)});
-		this.logicalSelectionSupport = this;
 		this.declarationSupport = new DeclarationSupport(this.getId(), {
 			tokens: ['variable.decl.sass', 'variable.ref.sass', 'support.function.name.sass', sassTokenTypes.TOKEN_PROPERTY + '.sass', sassTokenTypes.TOKEN_SELECTOR + '.sass'],
 			findDeclaration: (resource, position) => this.findDeclaration(resource, position)});
@@ -367,11 +365,6 @@ export class SASSMode extends Monarch.MonarchMode implements Modes.IExtraInfoSup
 	static $suggest = OneWorkerAttr(SASSMode, SASSMode.prototype.suggest);
 	public suggest(resource:URI, position:EditorCommon.IPosition):winjs.TPromise<Modes.ISuggestResult[]> {
 		return this._worker((w) => w.suggest(resource, position));
-	}
-
-	static $getRangesToPosition = OneWorkerAttr(SASSMode, SASSMode.prototype.getRangesToPosition);
-	public getRangesToPosition(resource:URI, position:EditorCommon.IPosition):winjs.TPromise<Modes.ILogicalSelectionEntry[]> {
-		return this._worker((w) => w.getRangesToPosition(resource, position));
 	}
 
 	static $computeInfo = OneWorkerAttr(SASSMode, SASSMode.prototype.computeInfo);

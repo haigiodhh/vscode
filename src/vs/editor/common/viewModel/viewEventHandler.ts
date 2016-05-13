@@ -65,19 +65,13 @@ export class ViewEventHandler {
 	public onConfigurationChanged(e:editorCommon.IConfigurationChangedEvent): boolean {
 		return false;
 	}
-	public onLayoutChanged(layoutInfo:editorCommon.IEditorLayoutInfo): boolean {
+	public onLayoutChanged(layoutInfo:editorCommon.EditorLayoutInfo): boolean {
 		return false;
 	}
 	public onScrollChanged(e:editorCommon.IScrollEvent): boolean {
 		return false;
 	}
 	public onZonesChanged(): boolean {
-		return false;
-	}
-	public onScrollWidthChanged(scrollWidth:number): boolean {
-		return false;
-	}
-	public onScrollHeightChanged(scrollHeight:number): boolean {
 		return false;
 	}
 	public onViewFocusChanged(isFocused:boolean): boolean {
@@ -169,7 +163,7 @@ export class ViewEventHandler {
 					break;
 
 				case editorCommon.EventType.ViewLayoutChanged:
-					if (this.onLayoutChanged(<editorCommon.IEditorLayoutInfo>data)) {
+					if (this.onLayoutChanged(<editorCommon.EditorLayoutInfo>data)) {
 						shouldRender = true;
 					}
 					break;
@@ -182,18 +176,6 @@ export class ViewEventHandler {
 
 				case editorCommon.EventType.ViewZonesChanged:
 					if (this.onZonesChanged()) {
-						shouldRender = true;
-					}
-					break;
-
-				case editorCommon.EventType.ViewScrollWidthChanged:
-					if (this.onScrollWidthChanged(<number>data)) {
-						shouldRender = true;
-					}
-					break;
-
-				case editorCommon.EventType.ViewScrollHeightChanged:
-					if (this.onScrollHeightChanged(<number>data)) {
 						shouldRender = true;
 					}
 					break;

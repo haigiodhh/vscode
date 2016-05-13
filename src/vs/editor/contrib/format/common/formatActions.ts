@@ -53,7 +53,7 @@ class FormatOnType implements editorCommon.IEditorContribution {
 		this.callOnModel = cAll(this.callOnModel);
 
 		// we are disabled
-		if (!this.editor.getConfiguration().formatOnType) {
+		if (!this.editor.getConfiguration().contribInfo.formatOnType) {
 			return;
 		}
 
@@ -231,5 +231,5 @@ CommonEditorRegistry.registerEditorAction(new EditorActionDescriptor(FormatActio
 	context: ContextKey.EditorTextFocus,
 	primary: KeyMod.Shift | KeyMod.Alt | KeyCode.KEY_F,
 	linux: { primary:KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KEY_I }
-}));
+}, 'Format Code'));
 CommonEditorRegistry.registerEditorContribution(FormatOnType);

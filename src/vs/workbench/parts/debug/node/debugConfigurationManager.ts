@@ -7,6 +7,7 @@ import path = require('path');
 import nls = require('vs/nls');
 import { TPromise } from 'vs/base/common/winjs.base';
 import strings = require('vs/base/common/strings');
+import Event, { Emitter } from 'vs/base/common/event';
 import objects = require('vs/base/common/objects');
 import uri from 'vs/base/common/uri';
 import { Schemas } from 'vs/base/common/network';
@@ -141,14 +142,14 @@ const schema: IJSONSchema = {
 
 const jsonRegistry = <jsonContributionRegistry.IJSONContributionRegistry>platform.Registry.as(jsonContributionRegistry.Extensions.JSONContribution);
 jsonRegistry.registerSchema(schemaId, schema);
-jsonRegistry.addSchemaFileAssociation('/.vscode/launch.json', schemaId);
 
-export class ConfigurationManager {
+export class ConfigurationManager implements debug.IConfigurationManager {
 
-	private configuration: debug.IConfig;
+	public configuration: debug.IConfig;
 	private systemVariables: SystemVariables;
 	private adapters: Adapter[];
 	private allModeIdsForBreakpoints: { [key: string]: boolean };
+	private _onDidConfigurationChange: Emitter<string>;
 
 	constructor(
 		configName: string,
@@ -159,6 +160,7 @@ export class ConfigurationManager {
 		@IConfigurationService private configurationService: IConfigurationService,
 		@IQuickOpenService private quickOpenService: IQuickOpenService
 	) {
+		this._onDidConfigurationChange = new Emitter<string>();
 		this.systemVariables = this.contextService.getWorkspace() ? new SystemVariables(this.editorService, this.contextService) : null;
 		this.setConfiguration(configName);
 		this.adapters = [];
@@ -214,15 +216,15 @@ export class ConfigurationManager {
 		});
 	}
 
-	public getConfiguration(): debug.IConfig {
-		return this.configuration;
+	public get onDidConfigurationChange(): Event<string> {
+		return this._onDidConfigurationChange.event;
 	}
 
-	public getConfigurationName(): string {
+	public get configurationName(): string {
 		return this.configuration ? this.configuration.name : null;
 	}
 
-	public getAdapter(): Adapter {
+	public get adapter(): Adapter {
 		return this.adapters.filter(adapter => strings.equalsIgnoreCase(adapter.type, this.configuration.type)).pop();
 	}
 
@@ -239,14 +241,18 @@ export class ConfigurationManager {
 			// massage configuration attributes - append workspace path to relatvie paths, substitute variables in paths.
 			this.configuration = filtered.length === 1 ? objects.deepClone(filtered[0]) : null;
 			if (this.configuration) {
-				if (this.systemVariables) {
-					Object.keys(this.configuration).forEach(key => {
-						this.configuration[key] = this.systemVariables.resolveAny(this.configuration[key]);
-					});
-				}
+				this.resloveConfiguration(this.configuration);
 				this.configuration.debugServer = config.debugServer;
 			}
-		});
+		}).then(() => this._onDidConfigurationChange.fire(this.configurationName));
+	}
+
+	public resloveConfiguration(configuration: debug.IConfig) {
+		if (this.systemVariables && configuration) {
+			Object.keys(configuration).forEach(key => {
+				configuration[key] = this.systemVariables.resolveAny(configuration[key]);
+			});
+		}
 	}
 
 	public openConfigFile(sideBySide: boolean): TPromise<boolean> {
@@ -284,12 +290,16 @@ export class ConfigurationManager {
 				return null;
 			}
 
-			return this.massageInitialConfigurations(adapter).then(() =>
-				JSON.stringify({
-					version: '0.2.0',
-					configurations: adapter.initialConfigurations ? adapter.initialConfigurations : []
-				}, null, '\t')
-			);
+			return this.massageInitialConfigurations(adapter).then(() => {
+				let editorConfig = this.configurationService.getConfiguration<any>();
+				return JSON.stringify(
+					{
+						version: '0.2.0',
+						configurations: adapter.initialConfigurations ? adapter.initialConfigurations : []
+					},
+					null,
+					editorConfig.editor.insertSpaces ? strings.repeat(' ', editorConfig.editor.tabSize) : '\t');
+			});
 		});
 	}
 

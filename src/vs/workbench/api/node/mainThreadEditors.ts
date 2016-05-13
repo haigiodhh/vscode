@@ -126,6 +126,11 @@ export class MainThreadTextEditor {
 		this._codeEditor = codeEditor;
 		if (this._codeEditor) {
 
+			// Catch early the case that this code editor gets a different model set and disassociate from this model
+			this._codeEditorListeners.push(this._codeEditor.addListener2(EditorCommon.EventType.ModelChanged, () => {
+				this.setCodeEditor(null);
+			}));
+
 			let forwardSelection = () => {
 				this._lastSelection = this._codeEditor.getSelections();
 				this._onSelectionChanged.fire(this._lastSelection);
@@ -267,7 +272,7 @@ export class MainThreadTextEditor {
 		let cursorStyle = this._configuration ? this._configuration.cursorStyle : EditorCommon.TextEditorCursorStyle.Line;
 		if (codeEditor) {
 			let codeEditorOpts = codeEditor.getConfiguration();
-			cursorStyle = codeEditorOpts.cursorStyle;
+			cursorStyle = codeEditorOpts.viewInfo.cursorStyle;
 		}
 
 		let indent = model.getOptions();
@@ -294,6 +299,9 @@ export class MainThreadTextEditor {
 	}
 
 	public matches(editor: IEditor): boolean {
+		if (!editor) {
+			return false;
+		}
 		return editor.getControl() === this._codeEditor;
 	}
 

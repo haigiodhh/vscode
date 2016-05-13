@@ -71,6 +71,7 @@ let openViewletKb: IKeybindings = {
 const registry = <IWorkbenchActionRegistry>Registry.as(ActionExtensions.WorkbenchActions);
 registry.registerWorkbenchAction(
 	new SyncActionDescriptor(OpenExplorerViewletAction, OpenExplorerViewletAction.ID, OpenExplorerViewletAction.LABEL, openViewletKb),
+	'View: Show Explorer',
 	nls.localize('view', "View")
 );
 
@@ -172,7 +173,7 @@ configurationRegistry.registerConfiguration({
 		'files.exclude': {
 			'type': 'object',
 			'description': nls.localize('exclude', "Configure glob patterns for excluding files and folders."),
-			'default': { '**/.git': true, '**/.DS_Store': true },
+			'default': { '**/.git': true, '**/.svn': true, '**/.DS_Store': true },
 			'additionalProperties': {
 				'anyOf': [
 					{
@@ -291,4 +292,4 @@ class OpenWorkingFileByNameAction extends QuickOpenAction {
 
 registry.registerWorkbenchAction(new SyncActionDescriptor(OpenWorkingFileByNameAction, OpenWorkingFileByNameAction.ID, OpenWorkingFileByNameAction.LABEL, {
 	primary: KeyMod.chord(KeyMod.CtrlCmd | KeyCode.KEY_K, KeyMod.CtrlCmd | KeyCode.KEY_P)
-}), nls.localize('filesCategory', "Files"));
+}), 'Files: Open Working File by Name', nls.localize('filesCategory', "Files"));

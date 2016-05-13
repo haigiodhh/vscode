@@ -12,7 +12,8 @@ import * as types from 'vs/workbench/api/node/extHostTypes';
 import * as EditorCommon from 'vs/editor/common/editorCommon';
 import {Model as EditorModel} from 'vs/editor/common/model/model';
 import {TestThreadService} from './testThreadService';
-import {createInstantiationService as createInstantiationService} from 'vs/platform/instantiation/common/instantiationService';
+import {ServiceCollection} from 'vs/platform/instantiation/common/serviceCollection';
+import {InstantiationService} from 'vs/platform/instantiation/common/instantiationService';
 import {MainProcessMarkerService} from 'vs/platform/markers/common/markerService';
 import {IMarkerService} from 'vs/platform/markers/common/markers';
 import {IThreadService} from 'vs/platform/thread/common/thread';
@@ -54,10 +55,11 @@ suite('ExtHostLanguageFeatures', function() {
 
 	suiteSetup(() => {
 
-		let instantiationService = createInstantiationService();
+		let services = new ServiceCollection();
+		let instantiationService = new InstantiationService(services);
 		threadService = new TestThreadService(instantiationService);
-		instantiationService.addSingleton(IMarkerService, new MainProcessMarkerService(threadService));
-		instantiationService.addSingleton(IThreadService, threadService);
+		services.set(IMarkerService, new MainProcessMarkerService(threadService));
+		services.set(IThreadService, threadService);
 
 		originalErrorHandler = errorHandler.getUnexpectedErrorHandler();
 		setUnexpectedErrorHandler(() => { });
@@ -75,6 +77,7 @@ suite('ExtHostLanguageFeatures', function() {
 				options: {
 					tabSize: 4,
 					insertSpaces: true,
+					trimAutoWhitespace: true,
 					defaultEOL: EditorCommon.DefaultEndOfLine.LF
 				}
 			},
@@ -636,7 +639,7 @@ suite('ExtHostLanguageFeatures', function() {
 		});
 	});
 
-	test('Quick Fix, invoke command+args', function(done) {
+	test('Quick Fix, invoke command+args', function() {
 		let actualArgs: any;
 		let commands = threadService.getRemotable(ExtHostCommands);
 		disposables.push(commands.registerCommand('test1', function(...args: any[]) {
@@ -649,8 +652,8 @@ suite('ExtHostLanguageFeatures', function() {
 			}
 		}));
 
-		threadService.sync().then(() => {
-			getQuickFixes(model, model.getFullModelRange()).then(value => {
+		return threadService.sync().then(() => {
+			return getQuickFixes(model, model.getFullModelRange()).then(value => {
 				assert.equal(value.length, 1);
 
 				let [entry] = value;
@@ -662,7 +665,6 @@ suite('ExtHostLanguageFeatures', function() {
 					assert.equal(actualArgs[1], 1);
 					assert.deepEqual(actualArgs[2], { bar: 'boo', foo: 'far' });
 					assert.equal(actualArgs[3], null);
-					done();
 				});
 			});
 		});

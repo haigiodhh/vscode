@@ -26,7 +26,7 @@ import async = require('vs/base/common/async');
 import severity from 'vs/base/common/severity';
 import {IOutputService} from 'vs/workbench/parts/output/common/output';
 import {IWorkbenchEditorService} from 'vs/workbench/services/editor/common/editorService';
-import {IConfigurationService, ConfigurationServiceEventTypes} from 'vs/platform/configuration/common/configuration';
+import {IConfigurationService} from 'vs/platform/configuration/common/configuration';
 import {IEventService} from 'vs/platform/event/common/event';
 import {IInstantiationService} from 'vs/platform/instantiation/common/instantiation';
 import {IMessageService, CloseAction} from 'vs/platform/message/common/message';
@@ -36,6 +36,7 @@ import URI from 'vs/base/common/uri';
 import * as semver from 'semver';
 import { shell } from 'electron';
 import {IStorageService, StorageScope} from 'vs/platform/storage/common/storage';
+import Event from 'vs/base/common/event';
 
 function toReadablePath(path: string): string {
 	if (!platform.isWindows) {
@@ -275,7 +276,7 @@ export class AutoFetcher implements git.IAutoFetcher, lifecycle.IDisposable
 		this.timeout = AutoFetcher.MIN_TIMEOUT;
 
 		this.toDispose = [];
-		this.toDispose.push(this.configurationService.addListener2(ConfigurationServiceEventTypes.UPDATED, e => this.onConfiguration(e.config.git)));
+		this.toDispose.push(this.configurationService.onDidUpdateConfiguration(e => this.onConfiguration(e.config.git)));
 		this.onConfiguration(configurationService.getConfiguration<git.IGitConfiguration>('git'));
 	}
 
@@ -375,9 +376,8 @@ export class GitService extends ee.EventEmitter
 	implements
 		git.IGitService {
 
-	static ID = 'Monaco.IDE.UI.Services.GitService';
-
 	public serviceId = git.IGitService;
+	
 	private eventService: IEventService;
 	private contextService: IWorkspaceContextService;
 	private messageService: IMessageService;
@@ -396,6 +396,8 @@ export class GitService extends ee.EventEmitter
 	private needsRefresh: boolean;
 	private refreshDelayer: async.ThrottledDelayer<void>;
 	private autoFetcher: AutoFetcher;
+
+	get onOutput(): Event<string> { return this.raw.onOutput; }
 
 	constructor(
 		raw: git.IRawGitService,
@@ -435,35 +437,41 @@ export class GitService extends ee.EventEmitter
 		this.triggerStatus(true); // trigger initial status
 
 		if (!storageService.getBoolean(IgnoreOldGitStorageKey, StorageScope.GLOBAL, false)) {
-			this.raw.getVersion().done(version => {
-				version = version || '';
-				version = version.replace(/^(\d+\.\d+\.\d+).*$/, '$1');
-				version = semver.valid(version);
-
-				if (version && semver.satisfies(version, '<2.0.0')) {
-					messageService.show(severity.Warning, {
-						message: nls.localize('updateGit', "You seem to have git {0} installed. Code works best with git >=2.0.0.", version),
-						actions: [
-							CloseAction,
-							new actions.Action('neverShowAgain', nls.localize('neverShowAgain', "Don't show again"), null, true, () => {
-								storageService.store(IgnoreOldGitStorageKey, true, StorageScope.GLOBAL);
-								return null;
-							}),
-							new actions.Action('downloadLatest', nls.localize('download', "Download"), '', true, () => {
-								shell.openExternal('https://git-scm.com/');
-								return null;
-							})
-						]
-					});
+			this.raw.serviceState().done(state => {
+				if (state !== git.RawServiceState.OK) {
+					return;
 				}
+
+				return this.raw.getVersion().then(version => {
+					version = version || '';
+					version = version.replace(/^(\d+\.\d+\.\d+).*$/, '$1');
+					version = semver.valid(version);
+
+					if (version && semver.satisfies(version, '<2.0.0')) {
+						messageService.show(severity.Warning, {
+							message: nls.localize('updateGit', "You seem to have git {0} installed. Code works best with git >=2.0.0.", version),
+							actions: [
+								CloseAction,
+								new actions.Action('neverShowAgain', nls.localize('neverShowAgain', "Don't show again"), null, true, () => {
+									storageService.store(IgnoreOldGitStorageKey, true, StorageScope.GLOBAL);
+									return null;
+								}),
+								new actions.Action('downloadLatest', nls.localize('download', "Download"), '', true, () => {
+									shell.openExternal('https://git-scm.com/');
+									return null;
+								})
+							]
+						});
+					}
+				});
 			});
 		}
 	}
 
 	private registerListeners():void {
 		this.toDispose.push(this.eventService.addListener2(FileEventType.FILE_CHANGES,(e) => this.onFileChanges(e)));
-		this.toDispose.push(this.eventService.addListener2(filesCommon.EventType.FILE_SAVED, (e) => this.onLocalFileChange(e)));
-		this.toDispose.push(this.eventService.addListener2(filesCommon.EventType.FILE_REVERTED, (e) => this.onLocalFileChange(e)));
+		this.toDispose.push(this.eventService.addListener2(filesCommon.EventType.FILE_SAVED, (e) => this.onTextFileChange(e)));
+		this.toDispose.push(this.eventService.addListener2(filesCommon.EventType.FILE_REVERTED, (e) => this.onTextFileChange(e)));
 		this.lifecycleService.onShutdown(this.dispose, this);
 	}
 
@@ -482,8 +490,8 @@ export class GitService extends ee.EventEmitter
 		this.refreshDelayer.trigger(() => this.status()).done(null, onError);
 	}
 
-	private onLocalFileChange(e:filesCommon.LocalFileChangeEvent): void {
-		var shouldTriggerStatus = e.gotUpdated() && paths.basename(e.getAfter().resource.fsPath) === '.gitignore';
+	private onTextFileChange(e:filesCommon.TextFileChangeEvent): void {
+		var shouldTriggerStatus = e.gotUpdated() && paths.basename(e.resource.fsPath) === '.gitignore';
 
 		if (!shouldTriggerStatus) {
 			return;
@@ -769,10 +777,6 @@ export class GitService extends ee.EventEmitter
 
 	public getRunningOperations(): git.IGitOperation[] {
 		return this.operations;
-	}
-
-	public onOutput(): winjs.Promise {
-		return this.raw.onOutput();
 	}
 
 	public getAutoFetcher(): git.IAutoFetcher {

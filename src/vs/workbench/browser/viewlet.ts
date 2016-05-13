@@ -23,9 +23,9 @@ import {IViewlet} from 'vs/workbench/common/viewlet';
 import {Composite, CompositeDescriptor, CompositeRegistry} from 'vs/workbench/browser/composite';
 import {IContextMenuService} from 'vs/platform/contextview/browser/contextView';
 import {IMessageService} from 'vs/platform/message/common/message';
-import {StructuredSelection} from 'vs/platform/selection/common/selection';
 
 export abstract class Viewlet extends Composite implements IViewlet {
+
 	public getOptimalWidth(): number {
 		return null;
 	}
@@ -136,14 +136,6 @@ export abstract class ViewerViewlet extends Viewlet {
 		return this.viewer;
 	}
 
-	public getSelection(): StructuredSelection {
-		if (!this.viewer) {
-			return new StructuredSelection([]); // return early if viewlet has not yet been created
-		}
-
-		return new StructuredSelection(this.viewer.getSelection());
-	}
-
 	public dispose(): void {
 
 		// Dispose Viewer
@@ -156,7 +148,7 @@ export abstract class ViewerViewlet extends Viewlet {
 }
 
 /**
- * A viewlet descriptor is a leightweight descriptor of a viewlet in the monaco workbench.
+ * A viewlet descriptor is a leightweight descriptor of a viewlet in the workbench.
  */
 export class ViewletDescriptor extends CompositeDescriptor<Viewlet> { }
 
@@ -367,10 +359,6 @@ export abstract class AdaptiveCollapsibleViewletView extends FixedCollapsibleVie
 		focus(this.tree);
 	}
 
-	public getSelection(): StructuredSelection {
-		return new StructuredSelection(this.tree.getSelection());
-	}
-
 	protected reveal(element: any, relativeTop?: number): TPromise<void> {
 		return reveal(this.tree, element, relativeTop);
 	}
@@ -488,10 +476,6 @@ export abstract class CollapsibleViewletView extends CollapsibleView implements 
 
 	public focusBody(): void {
 		focus(this.tree);
-	}
-
-	public getSelection(): StructuredSelection {
-		return new StructuredSelection(this.tree.getSelection());
 	}
 
 	protected reveal(element: any, relativeTop?: number): TPromise<void> {

@@ -253,7 +253,7 @@ const schema: IJSONSchema = {
 			}
 		},
 		extensionDependencies: {
-			description: nls.localize('vscode.extension.extensionDependencies', 'Dependencies to other extensions. The id of an extension is always ${publisher}.${name}. For example: vscode.csharp.'),
+			description: nls.localize('vscode.extension.extensionDependencies', 'Dependencies to other extensions. The identifier of an extension is always ${publisher}.${name}. For example: vscode.csharp.'),
 			type: 'array',
 			items: {
 				type: 'string'
@@ -439,4 +439,3 @@ Registry.add(PRExtensions.ExtensionsRegistry, new ExtensionsRegistryImpl());
 export const ExtensionsRegistry: IExtensionsRegistry = Registry.as(PRExtensions.ExtensionsRegistry);
 
 schemaRegistry.registerSchema(schemaId, schema);
-schemaRegistry.addSchemaFileAssociation('/package.json', schemaId);

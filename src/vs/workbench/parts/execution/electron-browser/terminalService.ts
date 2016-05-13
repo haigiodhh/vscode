@@ -9,7 +9,7 @@ import uri from 'vs/base/common/uri';
 import {TPromise} from 'vs/base/common/winjs.base';
 import {ITerminalService} from 'vs/workbench/parts/execution/common/execution';
 import {IConfigurationService} from 'vs/platform/configuration/common/configuration';
-import {IMessageService} from 'vs/platform/message/common/message';
+import {ITerminalConfiguration, DEFAULT_TERMINAL_WINDOWS, DEFAULT_TERMINAL_LINUX} from 'vs/workbench/parts/execution/electron-browser/terminal';
 
 import cp = require('child_process');
 import processes = require('vs/base/node/processes');
@@ -18,13 +18,28 @@ export class WinTerminalService implements ITerminalService {
 	public serviceId = ITerminalService;
 
 	constructor(
-		@IConfigurationService private _configurationService: IConfigurationService,
-		@IMessageService private _messageService: IMessageService
+		@IConfigurationService private _configurationService: IConfigurationService
 	) {
 	}
 
-	public openTerminal(path: string): void {
-		cp.spawn(processes.getWindowsShell(), ['/c', 'start', '/wait'], { cwd: path });
+	public openTerminal(path?: string): void {
+		const configuration = this._configurationService.getConfiguration<ITerminalConfiguration>();
+
+		this.spawnTerminal(cp, configuration, processes.getWindowsShell(), path)
+			.done(null, errors.onUnexpectedError);
+	}
+
+	private spawnTerminal(spawner, configuration: ITerminalConfiguration, command: string, path?: string): TPromise<void> {
+		let terminalConfig = configuration.externalTerminal;
+		let exec = terminalConfig.windowsExec || DEFAULT_TERMINAL_WINDOWS;
+		let cmdArgs = ['/c', 'start', '/wait', exec];
+
+		return new TPromise<void>((c, e) => {
+			let env = path ? { cwd: path } : void 0;
+			let child = spawner.spawn(command, cmdArgs, env);
+			child.on('error', e);
+			child.on('exit', () => c(null));
+		});
 	}
 }
 
@@ -32,9 +47,14 @@ export class MacTerminalService implements ITerminalService {
 	public serviceId = ITerminalService;
 	private _terminalApplicationScriptPath: TPromise<string>;
 
-	public openTerminal(path: string): void {
+	public openTerminal(path?: string): void {
 		this.getTerminalHelperScriptPath().done(helperPath => {
-			cp.spawn('/usr/bin/osascript', [helperPath, path]);
+			let args = [helperPath];
+			if (path) {
+				args.push(path);
+			}
+
+			cp.spawn('/usr/bin/osascript', args);
 		}, errors.onUnexpectedError);
 	}
 
@@ -67,14 +87,34 @@ export class MacTerminalService implements ITerminalService {
 				}
 				c(script);
 			});
-		}).then(name => uri.parse(require.toUrl(`vs/workbench/parts/execution/electron-browser/${ name }`)).fsPath);
+		}).then(name => uri.parse(require.toUrl(`vs/workbench/parts/execution/electron-browser/${name}`)).fsPath);
 	}
 }
 
 export class LinuxTerminalService implements ITerminalService {
 	public serviceId = ITerminalService;
 
-	public openTerminal(path: string): void {
-		cp.spawn('x-terminal-emulator', [], { cwd: path });
+	constructor(
+		@IConfigurationService private _configurationService: IConfigurationService
+	) { }
+
+
+	public openTerminal(path?: string): void {
+		const configuration = this._configurationService.getConfiguration<ITerminalConfiguration>();
+
+		this.spawnTerminal(cp, configuration, path)
+			.done(null, errors.onUnexpectedError);
+	}
+
+	private spawnTerminal(spawner, configuration: ITerminalConfiguration, path?: string): TPromise<void> {
+		let terminalConfig = configuration.externalTerminal;
+		let exec = terminalConfig.linuxExec || DEFAULT_TERMINAL_LINUX;
+		let env = path ? { cwd: path } : void 0;
+
+		return new TPromise<void>((c, e) => {
+			const child = spawner.spawn(exec, [], env);
+			child.on('error', e);
+			child.on('exit', () => c(null));
+		});
 	}
 }

@@ -9,7 +9,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict';
 
-import { env, languages, commands, workspace, window, Uri, ExtensionContext, IndentAction, Diagnostic, DiagnosticCollection, Range } from 'vscode';
+import { env, languages, commands, workspace, window, Uri, ExtensionContext, IndentAction, Diagnostic, DiagnosticCollection, Range, DocumentFilter } from 'vscode';
 
 // This must be the first statement otherwise modules might got loaded with
 // the wrong locale.
@@ -107,6 +107,7 @@ class LanguageProvider {
 
 		client.onReady().then(() => {
 			this.registerProviders(client);
+			this.bufferSyncSupport.listen();
 		}, () => {
 			// Nothing to do here. The client did show a message;
 		});
@@ -129,16 +130,17 @@ class LanguageProvider {
 		this.formattingProvider.updateConfiguration(config);
 
 		this.description.modeIds.forEach(modeId => {
-			languages.registerCompletionItemProvider(modeId, this.completionItemProvider, '.');
-			languages.registerHoverProvider(modeId, hoverProvider);
-			languages.registerDefinitionProvider(modeId, definitionProvider);
-			languages.registerDocumentHighlightProvider(modeId, documentHighlightProvider);
-			languages.registerReferenceProvider(modeId, referenceProvider);
-			languages.registerDocumentSymbolProvider(modeId, documentSymbolProvider);
-			languages.registerSignatureHelpProvider(modeId, signatureHelpProvider, '(', ',');
-			languages.registerRenameProvider(modeId, renameProvider);
-			languages.registerDocumentRangeFormattingEditProvider(modeId, this.formattingProvider);
-			languages.registerOnTypeFormattingEditProvider(modeId, this.formattingProvider, ';', '}', '\n');
+			let selector: DocumentFilter = { scheme: 'file', language: modeId };
+			languages.registerCompletionItemProvider(selector, this.completionItemProvider, '.');
+			languages.registerHoverProvider(selector, hoverProvider);
+			languages.registerDefinitionProvider(selector, definitionProvider);
+			languages.registerDocumentHighlightProvider(selector, documentHighlightProvider);
+			languages.registerReferenceProvider(selector, referenceProvider);
+			languages.registerDocumentSymbolProvider(selector, documentSymbolProvider);
+			languages.registerSignatureHelpProvider(selector, signatureHelpProvider, '(', ',');
+			languages.registerRenameProvider(selector, renameProvider);
+			languages.registerDocumentRangeFormattingEditProvider(selector, this.formattingProvider);
+			languages.registerOnTypeFormattingEditProvider(selector, this.formattingProvider, ';', '}', '\n');
 			languages.registerWorkspaceSymbolProvider(new WorkspaceSymbolProvider(client, modeId));
 			languages.setLanguageConfiguration(modeId, {
 				indentationRules: {
@@ -241,7 +243,6 @@ class LanguageProvider {
 		this.syntaxDiagnostics = Object.create(null);
 		this.bufferSyncSupport.reOpenDocuments();
 		this.bufferSyncSupport.requestAllDiagnostics();
-
 	}
 
 	public triggerAllDiagnostics(): void {

@@ -9,8 +9,10 @@ import 'vs/css!./contentWidgets';
 import * as dom from 'vs/base/browser/dom';
 import {StyleMutator} from 'vs/base/browser/styleMutator';
 import * as editorCommon from 'vs/editor/common/editorCommon';
-import {ClassNames, ContentWidgetPositionPreference, IContentWidget, IRenderingContext, IRestrictedRenderingContext, IViewContext} from 'vs/editor/browser/editorBrowser';
+import {ClassNames, ContentWidgetPositionPreference, IContentWidget} from 'vs/editor/browser/editorBrowser';
 import {ViewPart} from 'vs/editor/browser/view/viewPart';
+import {ViewContext} from 'vs/editor/common/view/viewContext';
+import {IRenderingContext, IRestrictedRenderingContext} from 'vs/editor/common/view/renderingContext';
 
 interface IWidgetData {
 	allowEditorOverflow: boolean;
@@ -53,7 +55,7 @@ export class ViewContentWidgets extends ViewPart {
 	public overflowingContentWidgetsDomNode:HTMLElement;
 	private _viewDomNode: HTMLElement;
 
-	constructor(context:IViewContext, viewDomNode:HTMLElement) {
+	constructor(context:ViewContext, viewDomNode:HTMLElement) {
 		super(context);
 		this._viewDomNode = viewDomNode;
 
@@ -109,7 +111,7 @@ export class ViewContentWidgets extends ViewPart {
 		}
 		return true;
 	}
-	public onLayoutChanged(layoutInfo:editorCommon.IEditorLayoutInfo): boolean {
+	public onLayoutChanged(layoutInfo:editorCommon.EditorLayoutInfo): boolean {
 		this._contentLeft = layoutInfo.contentLeft;
 
 		if (this._contentWidth !== layoutInfo.contentWidth) {
@@ -130,12 +132,6 @@ export class ViewContentWidgets extends ViewPart {
 	}
 	public onZonesChanged(): boolean {
 		return true;
-	}
-	public onScrollWidthChanged(scrollWidth:number): boolean {
-		return false;
-	}
-	public onScrollHeightChanged(scrollHeight:number): boolean {
-		return false;
 	}
 
 	// ---- end view event handlers

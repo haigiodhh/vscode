@@ -72,10 +72,7 @@
 
 .monaco-editor .find-widget .replace-input .input {
 	font-size: 13px;
-	font-family: "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
 }
-
-
 
 .monaco-editor .find-widget.visible.noanimation {
 	-webkit-transition: none;
@@ -115,7 +112,6 @@
 }
 
 .monaco-editor .find-widget .matchesCount {
-	font-family: "Segoe UI", "SFUIText-Light", "HelveticaNeue-Light", sans-serif, "Droid Sans Fallback";
 	display: inline-block;
 	margin: 0 1px 0 3px;
 	padding: 2px 2px 0 2px;

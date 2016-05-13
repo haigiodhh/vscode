@@ -30,7 +30,7 @@ let grammarsExtPoint = ExtensionsRegistry.registerExtensionPoint<ITMSyntaxExtens
 		defaultSnippets: [ { body: { language: '{{id}}', scopeName: 'source.{{id}}', path: './syntaxes/{{id}}.tmLanguage.'} }],
 		properties: {
 			language: {
-				description: nls.localize('vscode.extension.contributes.grammars.language', 'Language id for which this syntax is contributed to.'),
+				description: nls.localize('vscode.extension.contributes.grammars.language', 'Language identifier for which this syntax is contributed to.'),
 				type: 'string'
 			},
 			scopeName: {
@@ -128,7 +128,7 @@ function createTokenizationSupport(mode: IMode, grammar: IGrammar): ITokenizatio
 }
 
 export class DecodeMap {
-	_decodeMapTrait: void;
+	_decodeMapBrand: void;
 
 	lastAssignedId: number;
 	scopeToTokenIds: { [scope:string]:number[]; };
@@ -186,7 +186,7 @@ export class DecodeMap {
 }
 
 export class TMTokenDecodeData {
-	_tmTokenDecodeDataTrait: void;
+	_tmTokenDecodeDataBrand: void;
 
 	public scopes: string[];
 	public scopeTokensMaps: boolean[][];

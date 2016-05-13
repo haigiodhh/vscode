@@ -12,7 +12,7 @@ import {EditorInput, EditorOptions} from 'vs/workbench/common/editor';
 import {Position} from 'vs/platform/editor/common/editor';
 
 /**
- * All workbench events are listed here. For DOM events, see Monaco.Base.DomUtils.EventType.
+ * All workbench events are listed here.
  */
 export class EventType {
 
@@ -111,21 +111,6 @@ export class EventType {
 	 * Event type for when a composite is closed.
 	 */
 	static COMPOSITE_CLOSED = 'compositeClosed';
-
-	/**
-	 * Event type for when the workbench has been fully created.
-	 */
-	static WORKBENCH_CREATED = 'workbenchCreated';
-
-	/**
-	 * Event type for when the workbench is about to being disposed.
-	 */
-	static WORKBENCH_DISPOSING = 'workbenchDisposing';
-
-	/**
-	 * Event type for when the workbench is fully disposed.
-	 */
-	static WORKBENCH_DISPOSED = 'workbenchDisposed';
 
 	/**
 	 * Event type for when an untitled file is becoming dirty.

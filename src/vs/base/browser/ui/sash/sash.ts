@@ -9,6 +9,7 @@ import 'vs/css!./sash';
 import {IDisposable, dispose} from 'vs/base/common/lifecycle';
 import {Builder, $} from 'vs/base/browser/builder';
 import {isIPad} from 'vs/base/browser/browser';
+import {isMacintosh} from 'vs/base/common/platform';
 import types = require('vs/base/common/types');
 import DOM = require('vs/base/browser/dom');
 import {Gesture, EventType, GestureEvent} from 'vs/base/browser/touch';
@@ -61,6 +62,10 @@ export class Sash extends EventEmitter {
 
 		this.$e = $('.monaco-sash').appendTo(container);
 
+		if (isMacintosh) {
+			this.$e.addClass('mac');
+		}
+
 		this.gesture = new Gesture(this.$e.getHTMLElement());
 
 		this.$e.on(DOM.EventType.MOUSE_DOWN, (e: MouseEvent) => { this.onMouseDown(e); });
@@ -103,6 +108,8 @@ export class Sash extends EventEmitter {
 			return;
 		}
 
+		$(DOM.getElementsByTagName('iframe')).style('pointer-events', 'none'); // disable mouse events on iframes as long as we drag the sash
+
 		let mouseDownEvent = new StandardMouseEvent(e);
 		let startX = mouseDownEvent.posx;
 		let startY = mouseDownEvent.posy;
@@ -118,7 +125,7 @@ export class Sash extends EventEmitter {
 		this.emit('start', startEvent);
 
 		let $window = $(window);
-		let containerCssClass = `${this.getOrientation()}-cursor-container`;
+		let containerCssClass = `${this.getOrientation()}-cursor-container${isMacintosh ? '-mac' : ''}`;
 
 		let lastCurrentX = startX;
 		let lastCurrentY = startY;
@@ -145,6 +152,8 @@ export class Sash extends EventEmitter {
 
 			$window.off('mousemove');
 			document.body.classList.remove(containerCssClass);
+
+			$(DOM.getElementsByTagName('iframe')).style('pointer-events', 'auto');
 		});
 
 		document.body.classList.add(containerCssClass);

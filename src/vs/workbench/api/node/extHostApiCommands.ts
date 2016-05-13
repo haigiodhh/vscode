@@ -159,8 +159,15 @@ class ExtHostApiCommands {
 				description: `
 					Render the html of the resource in an editor view.
 
-					Links contained in the document will be handled by VS Code whereby it supports file-resources and virtual resources
-					as well as triggering commands using the 'command'-scheme.
+					Links contained in the document will be handled by VS Code whereby it supports \`file\`-resources and
+					[virtual](https://github.com/Microsoft/vscode/blob/master/src/vs/vscode.d.ts#L3295)-resources
+					as well as triggering commands using the \`command\`-scheme. Use the query part of a command-uri to pass along JSON-encoded
+					arguments - note that URL-encoding must be applied. The snippet below defines a command-link that calls the _previewHtml_
+					command and passes along an uri:
+					\`\`\`
+					let href = encodeURI('command:vscode.previewHtml?' + JSON.stringify(someUri));
+					let html = '<a href="' + href + '">Show Resource...</a>.';
+					\`\`\`
 				`,
 			args: [
 				{ name: 'uri', description: 'Uri of the resource to preview.', constraint: value => value instanceof URI || typeof value === 'string' },
@@ -179,6 +186,15 @@ class ExtHostApiCommands {
 			args: [
 				{ name: 'uri', description: '(optional) Uri of the folder to open. If not provided, a native dialog will ask the user for the folder', constraint: value => value === void 0 || value instanceof URI },
 				{ name: 'newWindow', description: '(optional) Wether to open the folder in a new window or the same. Defaults to opening in the same window.', constraint: value => value === void 0 || typeof value === 'boolean' }
+			]
+		});
+
+		this._register('vscode.startDebug', (configuration?: any) => {
+			return this._commands.executeCommand('_workbench.startDebug', configuration);
+		}, {
+			description: 'Start a debugging session.',
+			args: [
+				{ name: 'configuration', description: '(optional) Name of the debug configuration from \'launch.json\' to use. Or a configuration json object to use.' }
 			]
 		});
 	}
@@ -245,7 +261,7 @@ class ExtHostApiCommands {
 			resource,
 			position: position && typeConverters.fromPosition(position)
 		};
-		return this._commands.executeCommand<modes.IReference[]>('_executeDocumentHighlights', args).then(value => {
+		return this._commands.executeCommand<modes.IReference[]>('_executeReferenceProvider', args).then(value => {
 			if (Array.isArray(value)) {
 				return value.map(typeConverters.location.to);
 			}

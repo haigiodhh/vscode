@@ -73,7 +73,7 @@ declare namespace vscode {
 
 		/**
 		 * The offset of the first character which is not a whitespace character as defined
-		 * by `/\s/`.
+		 * by `/\s/`. **Note** that if a line is all whitespaces the length of the line is returned.
 		 *
 		 * @readonly
 		 */
@@ -1212,6 +1212,12 @@ declare namespace vscode {
 		 * A short title like 'Retry', 'Open Log' etc.
 		 */
 		title: string;
+
+		/**
+		 * Indicates that this item replaces the default
+		 * 'Close' action.
+		 */
+		isCloseAffordance?: boolean;
 	}
 
 	/**
@@ -2808,6 +2814,13 @@ declare namespace vscode {
 	 * Namespace describing the environment the editor runs in.
 	 */
 	export namespace env {
+
+		/**
+		 * The application name of the editor, like 'VS Code'.
+		 *
+		 * @readonly
+		 */
+		export let appName: string;
 
 		/**
 		 * Represents the preferred user-language, like `de-CH`, `fr`, or `en-US`.

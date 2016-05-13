@@ -105,6 +105,8 @@ export interface IWorkingFilesModel {
 	removeEntry(entry: IWorkingFileEntry): IWorkingFileEntry;
 	removeEntry(arg1: IWorkingFileEntry | URI): IWorkingFileEntry;
 
+	popLastClosedEntry(): IWorkingFileEntry;
+
 	reorder(source: IWorkingFileEntry, target: IWorkingFileEntry): void;
 
 	hasEntry(resource: URI): boolean;
@@ -249,13 +251,19 @@ export class LocalFileChangeEvent extends PropertyChangeEvent {
  * Text file change events are emitted when files are saved or reverted.
  */
 export class TextFileChangeEvent extends LocalFileChangeEvent {
+	private _resource: URI;
 	private _model: IModel;
 	private _isAutoSaved: boolean;
 
-	constructor(model: IModel, before: IFileStat, after: IFileStat = before, originalEvent?: BaseEvent) {
+	constructor(resource: URI, model: IModel, before: IFileStat, after: IFileStat = before, originalEvent?: BaseEvent) {
 		super(before, after, originalEvent);
 
+		this._resource = resource;
 		this._model = model;
+	}
+
+	public get resource(): URI {
+		return this._resource;
 	}
 
 	public get model(): IModel {

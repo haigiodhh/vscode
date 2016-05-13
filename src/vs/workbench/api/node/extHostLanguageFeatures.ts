@@ -87,7 +87,7 @@ class CodeLensAdapter implements modes.ICodeLensSupport {
 				data.symbols.push(<modes.ICodeLensSymbol>{
 					id: String(i),
 					range: TypeConverters.fromRange(lens.range),
-					command: TypeConverters.Command.from(lens.command, { commands: this._commands, disposables: data.disposables })
+					command: TypeConverters.Command.from(lens.command, data.disposables)
 				});
 			});
 
@@ -144,7 +144,7 @@ class CodeLensAdapter implements modes.ICodeLensSupport {
 					};
 				}
 
-				symbol.command = TypeConverters.Command.from(command, { commands: this._commands, disposables: cachedData.disposables });
+				symbol.command = TypeConverters.Command.from(command, cachedData.disposables);
 				return symbol;
 			});
 		});
@@ -315,7 +315,6 @@ class QuickFixAdapter implements modes.IQuickFixSupport {
 		});
 
 		this._cachedCommands = dispose(this._cachedCommands);
-		const ctx = { commands: this._commands, disposables: this._cachedCommands };
 
 		return asWinJsPromise(token => this._provider.provideCodeActions(doc, ran, { diagnostics: allDiagnostics }, token)).then(commands => {
 			if (!Array.isArray(commands)) {
@@ -323,7 +322,7 @@ class QuickFixAdapter implements modes.IQuickFixSupport {
 			}
 			return commands.map((command, i) => {
 				return <modes.IQuickFix> {
-					command: TypeConverters.Command.from(command, ctx),
+					command: TypeConverters.Command.from(command, this._cachedCommands),
 					score: i
 				};
 			});
@@ -511,7 +510,12 @@ class SuggestAdapter implements modes.ISuggestSupport {
 			} else if (value instanceof CompletionList) {
 				list = value;
 				defaultSuggestions.incomplete = list.isIncomplete;
+			} else if (!value) {
+				// undefined and null are valid results
+				return;
 			} else {
+				// warn about everything else
+				console.warn('INVALID result from completion provider. expected CompletionItem-array or CompletionList but got:', value);
 				return;
 			}
 
@@ -574,9 +578,6 @@ class SuggestAdapter implements modes.ISuggestSupport {
 	}
 
 	getTriggerCharacters(): string[] {
-		throw new Error('illegal state');
-	}
-	shouldShowEmptySuggestionList(): boolean {
 		throw new Error('illegal state');
 	}
 	shouldAutotriggerSuggest(context: modes.ILineContext, offset: number, triggeredByCharacter: string): boolean {
@@ -1022,9 +1023,6 @@ export class MainThreadLanguageFeatures {
 			},
 			getTriggerCharacters(): string[] {
 				return triggerCharacters;
-			},
-			shouldShowEmptySuggestionList(): boolean {
-				return true;
 			},
 			shouldAutotriggerSuggest(): boolean {
 				return true;

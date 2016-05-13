@@ -19,6 +19,7 @@ var remote = require('gulp-remote-src');
 var shell = require("gulp-shell");
 var _ = require('underscore');
 var packageJson = require('../package.json');
+var shrinkwrap = require('../npm-shrinkwrap.json');
 var util = require('./lib/util');
 var buildfile = require('../src/buildfile');
 var common = require('./gulpfile.common');
@@ -32,7 +33,7 @@ var baseModules = [
 	'events', 'fs', 'getmac', 'glob', 'graceful-fs', 'http', 'http-proxy-agent',
 	'https', 'https-proxy-agent', 'iconv-lite', 'electron', 'net',
 	'os', 'path', 'readline', 'sax', 'semver', 'stream', 'string_decoder', 'url',
-	'vscode-textmate', 'winreg', 'yauzl', 'native-keymap', 'zlib'
+	'vscode-textmate', 'winreg', 'yauzl', 'native-keymap', 'zlib', 'minimist'
 ];
 
 // Build
@@ -42,7 +43,8 @@ var vscodeEntryPoints = _.flatten([
 	buildfile.base,
 	buildfile.editor,
 	buildfile.languages,
-	buildfile.vscode
+	buildfile.workbench,
+	buildfile.code
 ]);
 
 var vscodeResources = [
@@ -50,6 +52,7 @@ var vscodeResources = [
 	'out-build/cli.js',
 	'out-build/bootstrap.js',
 	'out-build/bootstrap-amd.js',
+	'out-build/paths.js',
 	'out-build/vs/**/*.{svg,png,cur}',
 	'out-build/vs/base/node/{stdForkStart.js,terminateProcess.sh}',
 	'out-build/vs/base/worker/workerMainCompatibility.html',
@@ -62,6 +65,7 @@ var vscodeResources = [
 	'out-build/vs/workbench/parts/execution/**/*.scpt',
 	'out-build/vs/workbench/parts/git/**/*.html',
 	'out-build/vs/workbench/parts/git/**/*.sh',
+	'out-build/vs/workbench/parts/html/browser/webview.html',
 	'out-build/vs/workbench/parts/markdown/**/*.md',
 	'out-build/vs/workbench/parts/tasks/**/*.json',
 	'out-build/vs/workbench/services/files/**/*.exe',
@@ -96,7 +100,7 @@ var config = {
 	version: packageJson.electronVersion,
 	productAppName: product.nameLong,
 	companyName: 'Microsoft Corporation',
-	copyright: 'Copyright (C) 2015 Microsoft. All rights reserved',
+	copyright: 'Copyright (C) 2016 Microsoft. All rights reserved',
 	darwinIcon: 'resources/darwin/code.icns',
 	darwinBundleIdentifier: product.darwinBundleIdentifier,
 	darwinApplicationCategoryType: 'public.app-category.developer-tools',
@@ -193,9 +197,8 @@ function packageTask(platform, arch, opts) {
 		var license = gulp.src(['Credits_*', 'LICENSE.txt', 'ThirdPartyNotices.txt', 'licenses/**'], { base: '.' });
 		var api = gulp.src('src/vs/vscode.d.ts').pipe(rename('out/vs/vscode.d.ts'));
 
-		var depsSrc = _.flatten(Object.keys(packageJson.dependencies).concat(Object.keys(packageJson.optionalDependencies))
-			.map(function (d) { return ['node_modules/' + d + '/**', '!node_modules/' + d + '/**/{test,tests}/**']; })
-		);
+		var depsSrc = _.flatten(Object.keys(shrinkwrap.dependencies)
+			.map(function (d) { return ['node_modules/' + d + '/**', '!node_modules/' + d + '/**/{test,tests}/**']; }));
 
 		var deps = gulp.src(depsSrc, { base: '.', dot: true })
 			.pipe(util.cleanNodeModule('fsevents', ['binding.gyp', 'fsevents.cc', 'build/**', 'src/**', 'test/**'], true))

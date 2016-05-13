@@ -68,7 +68,7 @@ export class ElectronWindow {
 			e.preventDefault();
 		});
 
-		// Let a dropped file open inside Monaco (only if dropped over editor area)
+		// Let a dropped file open inside Code (only if dropped over editor area)
 		window.document.body.addEventListener('drop', (e: DragEvent) => {
 			e.preventDefault();
 
@@ -166,7 +166,7 @@ export class ElectronWindow {
 			return dialog.showSaveDialog(this.win, options, callback);
 		}
 
-		return dialog.showSaveDialog(this.win, options); // https://github.com/atom/electron/issues/4936
+		return dialog.showSaveDialog(this.win, options); // https://github.com/electron/electron/issues/4936
 	}
 
 	public setFullScreen(fullscreen: boolean): void {

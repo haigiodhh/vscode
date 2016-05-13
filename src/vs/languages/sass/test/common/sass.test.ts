@@ -10,7 +10,10 @@ import Modes = require('vs/editor/common/modes');
 import * as sassTokenTypes from 'vs/languages/sass/common/sassTokenTypes';
 import {NULL_THREAD_SERVICE} from 'vs/platform/test/common/nullThreadService';
 import {MockModeService} from 'vs/editor/test/common/mocks/mockModeService';
-import {createInstantiationService} from 'vs/platform/instantiation/common/instantiationService';
+import {IThreadService} from 'vs/platform/thread/common/thread';
+import {IModeService} from 'vs/editor/common/services/modeService';
+import {ServiceCollection} from 'vs/platform/instantiation/common/serviceCollection';
+import {InstantiationService} from 'vs/platform/instantiation/common/instantiationService';
 
 suite('Sass Colorizer', () => {
 
@@ -21,10 +24,10 @@ suite('Sass Colorizer', () => {
 
 		let threadService = NULL_THREAD_SERVICE;
 		let modeService = new MockModeService();
-		let inst = createInstantiationService({
-			threadService: threadService,
-			modeService: modeService
-		});
+		let services = new ServiceCollection();
+		services.set(IThreadService, threadService);
+		services.set(IModeService, modeService);
+		let inst = new InstantiationService(services);
 		threadService.setInstantiationService(inst);
 
 
@@ -1296,7 +1299,7 @@ suite('Sass Colorizer', () => {
 				{ startIndex: 19, type: 'variable.ref.sass' },
 				{ startIndex: 25, type: 'punctuation.sass' },
 				{ startIndex: 26, type: '' },
-				{ startIndex: 27, type: sassTokenTypes.TOKEN_PROPERTY + '.sass' },
+				{ startIndex: 27, type: 'variable.sass' },
 				{ startIndex: 34, type: '' },
 				{ startIndex: 35, type: 'constant.numeric.sass' },
 				{ startIndex: 38, type: 'support.function.name.sass' },
@@ -1571,7 +1574,7 @@ suite('Sass Colorizer', () => {
 				{ startIndex: 0, type: sassTokenTypes.TOKEN_AT_KEYWORD + '.sass' },
 				{ startIndex: 6, type: '' },
 				{ startIndex: 7, type: 'support.function.name.sass' },
-				{ startIndex: 13, type: sassTokenTypes.TOKEN_PROPERTY + '.sass' },
+				{ startIndex: 13, type: 'variable.sass' },
 				{ startIndex: 16, type: '' },
 				{ startIndex: 17, type: sassTokenTypes.TOKEN_VALUE + '.sass' },
 				{ startIndex: 22, type: 'support.function.name.sass' },

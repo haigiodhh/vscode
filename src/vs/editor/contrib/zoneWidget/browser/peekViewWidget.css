@@ -15,7 +15,6 @@
 
 .monaco-editor .peekview-widget .head .peekview-title {
 	display: inline-block;
-	font-family: "Segoe UI", "SFUIText-Regular", "HelveticaNeue", sans-serif, "Droid Sans Fallback";
 	font-size: 13px;
 	margin-left: 20px;
 	cursor: pointer;
@@ -50,6 +49,7 @@
 .monaco-editor .peekview-widget > .body {
 	border-top: 1px solid #007ACC;
 	border-bottom: 1px solid #007ACC;
+	position: relative;
 }
 
 /* Dark Theme */
